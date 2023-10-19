@@ -173,12 +173,9 @@ void eval(char *cmdline)
     char * argv[MAXARGS];
     pid_t pid;
     int bgfg = parseline(cmdline,argv);
-    //check for built in commands, return 0 (donothing) if not command. 
+    
     if (!builtin_cmd(argv))
     {
-        // Blocking SIGCHILD signals to avoid a race
-
-        //fork and let child run job
         if ((pid = fork()) == 0)
         {
 
@@ -191,15 +188,9 @@ void eval(char *cmdline)
 
         } 
 
-       
-        //parent waits for FG to end
-
-            //printf("parent: %i\n", i++); //2
             if (!bgfg) addjob(jobs,pid,FG,cmdline);
             else addjob(jobs,pid,BG,cmdline);
             
-
-            //have to wait for FG to terminate
             if(!bgfg)
              {
 
@@ -283,34 +274,25 @@ int parseline(const char *cmdline, char **argv)
  */
 int builtin_cmd(char **argv) 
 {
-    //quit
     if (!strcmp(argv[0], "quit")) exit(0);
-
-    //& as first char is ignore
     else if (!strcmp(argv[0], "&")) return 1;
-
-    //list jobs command
     else if (!strcmp(argv[0], "jobs"))
     {
         listjobs(jobs);
         return 1;
     }
-
-    //bg jobs command 
     else if (!strcmp(argv[0], "bg"))
     {
         do_bgfg(argv);
         return 1;
     }
-
-    //fg jobs command
     else if (!strcmp(argv[0], "fg"))
     {
         do_bgfg(argv);
         return 1;
     }
 
-    return 0;     /* not a builtin command */
+    return 0;  
 }
 
 /* 
@@ -327,7 +309,7 @@ void do_bgfg(char **argv)
         printf("%s command requires PID or %%jobid argument\n", argv[0]);
         return;
     }
-    if (argv[1][0] == '%') //check if job
+    if (argv[1][0] == '%')
     {
         temp = atoi(&argv[1][1]);
         if(! (job=getjobjid(jobs, temp)))
@@ -346,8 +328,6 @@ void do_bgfg(char **argv)
             return;
         }
     }
-    //check if bg/fg 
-    //set state otherwise print error
 
     if(!strcmp(argv[0], "bg"))
     {
@@ -406,20 +386,13 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
-    //printf("ctrl-C pressed. SIGINT activated\n");
-    //use fgpid to search for foregrund process
-    //0 means no foreground, !0 means foreground process exists
 
     pid_t pid = fgpid(jobs);
-
-    //struct job_t *jobf;
-    //jobf=getjobpid(jobs, pid);
 
     int jid = pid2jid(pid);
 
     if (pid != 0)
     {
-        //if job is found, kill process then delete
             printf("[%d](%d) Terminated by sig%d\n", jid, pid, sig);
             kill(-pid, SIGINT);
             deletejob(jobs,pid);
@@ -442,7 +415,6 @@ void sigtstp_handler(int sig)
 
     int jid = pid2jid(pid);
 
-    //if pids has a finds a process
     if (pid != 0)
     {
         //kill process and change job status to "stopped"
